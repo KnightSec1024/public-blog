@@ -1,2 +1,0 @@
-# public-blog
-Personal insights
