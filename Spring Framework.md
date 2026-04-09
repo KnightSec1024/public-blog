@@ -77,7 +77,7 @@ public class User {
 > | DTO 核心作用？    | **"输入过滤 + 输出脱敏 + 业务隔离"**        |
 > | 终极原则？        | **"外部参数永不直接进数据库，必须经过 DTO 洗一遍"** |
 
-## 1.2 权限注解配置错误（@permitALl的顺序、注解中拼接userInput参数等）
+## 1.2 权限注解配置错误（@permitALL的顺序、注解中拼接userInput参数等）
 
 **通俗理解：**
 
@@ -238,3 +238,6 @@ String jpql = "SELECT u FROM User u WHERE u.username = '" + userInput + "'";
 
 authentication.principal.userId 是用户在登录阶段（Authentication）经由系统核实后存入 SecurityContext 的信息，是不可伪造的。
 当带有id参数的请求到达时，Spring 利用 SpEL（Spring Expression Language）将路径参数中的 id（即 101）与当前登录用户的 userId 进行实时比对。
+
+
+# Spring框架的审计
