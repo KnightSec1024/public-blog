@@ -10,7 +10,7 @@
 - 如果代码没限制，用户的 role 字段就被改成了 ADMIN
 ```
 
-### 原理
+**原理**
 Spring MVC的@ModuleAttribute 或 @RequsetBody会自动将HTTP请求参数绑定到Java对象的字段
 
 **危险代码示例：**
@@ -194,14 +194,19 @@ T(java.lang.System).exit(0)
 
 ## 1.4 关于JPA
  **通俗解释：**
-> **JPA(Java Persistence API) 是一套基于 ORM（对象关系映射）的标准规范**。简单来说，它的目的是让你像操作 Java 对象一样操作数据库，而不需要频繁编写原生的 SQL 语句。常见的 Hibernate、EclipseLink 都是 JPA 的具体实现。
+> **JPA(Java Persistence API) 是一套基于 ORM（对象关系映射）的标准规范**。
+>
+> 简单来说，它的目的是让你像操作 Java 对象一样操作数据库，而不需要频繁编写原生的 SQL 语句。
+>
+> 常见的 Hibernate、EclipseLink 都是 JPA 的具体实现。
+> 
 > 核心逻辑： 通过 @Entity 注解将 Java 类映射到数据库表，通过 EntityManager 进行增删改查。
 
-### JPA的防SQL注入
+**JPA的防SQL注入(参数化查询)**
 JPA 本身确实具备很强的防注入能力，但前提是“正确使用”。
-JPA 防御 SQL 注入的核心原理是 参数化查询 (Parameterized Queries)。
+JPA 防御 SQL 注入的**核心原理是参数化查询 (Parameterized Queries)。**
 
-**安全的写法：参数绑定:**
+**安全的写法(参数绑定):**
 
 ```
 // ✅ 安全：使用参数占位符
