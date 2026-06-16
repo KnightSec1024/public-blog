@@ -1,11 +1,10 @@
 # 云原生安全
-## 学习建议
-- **每天2-3小时**，按分类顺序学习  
+
 - **动手实践**：使用 kind 搭建本地 K8s 环境，配合 Kubernetes Goat 进行实验  
 - **结合自身优势**：每学一个知识点，思考“如果用代码审计视角，我会关注什么”
 ---
 
-| 阶段 | 学习重点（关键词） | 核心解决问题（面试必考） | 专家级回答套路（话术指引） | 关联你的背景
+| 阶段 | 学习重点（关键词） | 核心解决问题 | 专家级回答套路（话术指引） | 关联你的背景
 -- | -- | -- | -- | --
 Day 1: K8s与容器安全 | RBAC, Network Policy, Admission Controller, 容器逃逸 | 如何在动态集群实现微隔离？如果Pod被破如何防止横向移动？ | “我不看物理防火墙，我通过代码定义网络策略实现零信任隔离。” | 将华为“物理/子网隔离”经验映射到“K8s 命名空间隔离”。
 Day 2: DevSecOps流水线 | SAST/DAST/IAST, 镜像扫描(Trivy), CI/CD集成 | 如何在不影响研发效率的前提下，将安全工具嵌入流水线？ | “安全不是阻断开发，而是**‘左移’**。通过增量扫描降低80%的干扰。” | 结合你在互金公司推行自动化代码审计流程的实战经验。
@@ -17,7 +16,7 @@ Day 5: 案例包装与复盘 | 大厂方法论, SDLC治理, 跨团队推动 | 40
 
 ---
 
-## 第1天：云安全基础 & 云原生概念
+## ：云安全基础 & 云原生概念
 
 <img width="826" height="606" alt="image" src="https://github.com/user-attachments/assets/5f565ac8-12e6-4bf1-874c-84188684fec5" />
 
@@ -814,4 +813,71 @@ Controller Manager | 纠错员 | 观察 -> 对比 -> 调整 | 失去自愈，手
 
 Vector 是由 Datadog 开源的高性能可观测性数据管道工具，用 Rust 编写，定位是：
 
-统一采集、转换、路由、输出 日志 / 指标 / 链路追踪 数据的中间件
+｜ 统一采集、转换、路由、输出 日志 / 指标 / 链路追踪 数据的中间件
+数据流节点全景图
+```mermaid
+graph TB
+    subgraph Pod[Kubernetes Pod]
+        ConfigMap[ConfigMap<br>配置文件] --> Vector[Vector 进程]
+        
+        subgraph VectorProcess[Vector 进程]
+            direction TB
+            Source[SOURCE<br>Kafka 消费]
+            Transform[TRANSFORM<br>时间戳标准化 + 敏感数据脱敏]
+            Sink[SINK<br>写入 ES]
+            
+            Source --> Transform --> Sink
+        end
+        
+        ConfigMap -.->|配置注入| VectorProcess
+    end
+    
+    Kafka[Kafka<br>exchange-topic] -->|数据流入| Source
+    Sink -->|数据写入| ES[Elasticsearch<br>exchange-YYYY.MM.dd.HH]
+```
+
+Vector 在日志流转中的角色
+```mermaid
+graph LR
+    Kafka[("Kafka<br/>(原始日志)")] --> Vector
+    
+    subgraph Vector[Vector]
+        direction LR
+        Consume[消费] --> Parse[解析] --> Transform[转换] --> Desensitize[脱敏] --> Route[路由]
+    end
+    
+    Vector --> ES[("ES<br/>(脱敏日志)")]
+    
+    Note[它在这里承担了 ETL 的全部工作] -.-> Vector
+```
+
+本质上 Vector 扮演的是 ETL 引擎 的角色：
+
+|ETL 阶段|Vector 做了什么 |
+|-----------|-----------|
+|Extract抽取从|Kafka 消费原始 JSON 日志|
+|Transform 转换|时间戳标准化 + 正则脱敏|
+|Load 加载|按小时写入 ES 对应索引|
+
+'''
+┌────────────────────────────────────────────────────────────────┐
+│                      脱敏方案架构                               │
+│                                                                │
+│  ① 应用无感知                                                  │
+│     应用只管打日志 → 照常写入Kafka，不做任何改动                  │
+│                                                                │
+│  ② 异步处理                                                    │
+│     Vector 作为独立消费者，不影响应用主链路                       │
+│                                                                │
+│  ③ 集中脱敏                                                    │
+│     所有敏感规则在 ConfigMap 中统一维护                          │
+│     规则更新只需改配置，无需重新部署应用                          │
+│                                                                │
+│  ④ 数据隔离                                                    │
+│     Kafka 中保留原始数据（可设TTL自动清除）                       │
+│     ES 中只存脱敏后数据                                         │
+│                                                                │
+│  ⑤ 按时分索引                                                  │
+│     便于按时间范围查询和索引生命周期管理(ILM)                     │
+└────────────────────────────────────────────────────────────────┘
+'''
