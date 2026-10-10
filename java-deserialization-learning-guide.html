@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Java 反序列化漏洞学习环境推荐</title>
+  <style>
+    :root {
+      --bg: #f7fafc;
+      --card: #ffffff;
+      --primary: #4f8ef7;
+      --primary-dark: #2563eb;
+      --text: #2d3748;
+      --text-light: #718096;
+      --border: #e2e8f0;
+      --accent: #38b2ac;
+      --warning-bg: #fffbeb;
+      --warning-border: #f59e0b;
+      --code-bg: #1e293b;
+      --code-text: #e2e8f0;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      line-height: 1.75;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    header h1 {
+      font-size: 2rem;
+      color: var(--primary-dark);
+      margin-bottom: 10px;
+    }
+    header p {
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+    .badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #4f8ef7, #38b2ac);
+      color: #fff;
+      font-size: 0.8rem;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      letter-spacing: 1px;
+    }
+    section.card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      transition: box-shadow 0.2s ease;
+    }
+    section.card:hover {
+      box-shadow: 0 6px 20px rgba(79, 142, 247, 0.12);
+    }
+    h2 {
+      font-size: 1.3rem;
+      color: var(--primary-dark);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 .num {
+      background: var(--primary);
+      color: #fff;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin: 18px 0 8px;
+      color: var(--text);
+    }
+    p { margin-bottom: 10px; }
+    a {
+      color: var(--primary-dark);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--primary);
+      word-break: break-all;
+    }
+    a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    ul, ol { padding-left: 22px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    code {
+      background: #eef2f7;
+      color: #d63384;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.88em;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 16px 20px;
+      border-radius: 10px;
+      overflow-x: auto;
+      margin: 14px 0;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5fb;
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+    tr:nth-child(even) td { background: #fafcff; }
+    blockquote {
+      border-left: 4px solid var(--primary);
+      background: #f0f6ff;
+      padding: 12px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0;
+      color: var(--text);
+    }
+    .route {
+      background: linear-gradient(135deg, #f0f6ff, #ecfdf9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 26px;
+      font-size: 1.02rem;
+      line-height: 2.2;
+      text-align: center;
+      margin: 14px 0;
+      font-weight: 500;
+      color: var(--primary-dark);
+    }
+    .route .arrow { color: var(--accent); font-weight: bold; padding: 0 6px; }
+    .footer {
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.85rem;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .tag {
+      display: inline-block;
+      background: #e6fffa;
+      color: #047481;
+      font-size: 0.78rem;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .star { color: #f59e0b; }
+    @media (max-width: 640px) {
+      section.card { padding: 20px; }
+      h2 { font-size: 1.15rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">安全学习 · Java Deserialization</div>
+    <h1>Java 反序列化漏洞学习环境推荐</h1>
+    <p>按「入门 → 进阶 → 精通」排序，全部支持 IDEA 断点调试，跟完即可看清 POC 从字节流到 RCE 的完整解析链</p>
+  </header>
+
+  <!-- 1. WebGoat -->
+  <section class="card">
+    <h2><span class="num">1</span>WebGoat — 官方交互式教学 <span class="tag">最适合入门</span></h2>
+    <p><strong>仓库</strong>：<a href="https://github.com/WebGoat/WebGoat" target="_blank" rel="noopener">https://github.com/WebGoat/WebGoat</a></p>
+    <ul>
+      <li>OWASP 官方靶场，自带 <strong>Insecure Deserialization 专题课程</strong></li>
+      <li>每一步有提示引导，最终目标是构造 gadget 让服务器 <code>sleep 5秒</code>（安全的 RCE 等价物）</li>
+      <li>内置 <strong>Gadget Chain 概念讲解</strong>（VulnerableTaskHolder 链）</li>
+    </ul>
+    <h3>启动方式</h3>
+    <pre><code>git clone https://github.com/WebGoat/WebGoat.git
+cd WebGoat && mvn spring-boot:run
+# 浏览器访问 http://localhost:8080/WebGoat</code></pre>
+    <p><strong>调试要点</strong>：在 <code>org.dummy.insecure.framework.VulnerableProcessingHolder#readObject</code> 下断点，观察恶意序列化数据如何在反序列化时被自动触发。</p>
+  </section>
+
+  <!-- 2. java-sec-code -->
+  <section class="card">
+    <h2><span class="num">2</span>java-sec-code — 漏洞代码集合 <span class="tag">最适合跟单链</span></h2>
+    <p><strong>仓库</strong>：<a href="https://github.com/JoyChou93/java-sec-code" target="_blank" rel="noopener">https://github.com/JoyChou93/java-sec-code</a></p>
+    <ul>
+      <li>覆盖原生反序列化、fastjson、SnakeYAML、Jackson、SnakeXML 等多种触发点</li>
+      <li>每个漏洞接口单独一个 Controller，代码极简，直接发包即可触发</li>
+      <li>附带 CVE 列表和利用说明</li>
+    </ul>
+    <h3>启动方式</h3>
+    <pre><code>git clone https://github.com/JoyChou93/java-sec-code.git
+# 导入 IDEA（Maven 项目），运行 WebSecCodeApplication</code></pre>
+    <h3>调试步骤（原生反序列化为例）</h3>
+    <ol>
+      <li><code>POST /deserialize</code> 发送 base64 序列化数据</li>
+      <li>在 <code>ObjectInputStream#readObject</code> 下断点</li>
+      <li>F7 跟进 → <code>ObjectInputStream#readOrdinaryObject</code> → <code>readSerialData</code> → 反射调用目标类的 <code>readObject</code></li>
+      <li>观察 gadget 类（如 CommonsCollections 的 <code>TransformedMap</code>）如何一步步走到 <code>Runtime.exec</code></li>
+    </ol>
+  </section>
+
+  <!-- 3. ysoserial -->
+  <section class="card">
+    <h2><span class="num">3</span>ysoserial + 本地 CommonsCollections 靶场 <span class="tag">核心必学 <span class="star">★</span></span></h2>
+    <p><strong>ysoserial 仓库</strong>：<a href="https://github.com/frohoff/ysoserial" target="_blank" rel="noopener">https://github.com/frohoff/ysoserial</a></p>
+    <p>学反序列化绕不开 CommonsCollections 链。建议自建一个最简靶场专门调试。</p>
+    <h3>靶场代码（自己写一个 20 行的服务端）</h3>
+    <pre><code>// VulnServer.java — 接收序列化数据并反序列化
+public static void main(String[] args) throws Exception {
+    ServerSocket server = new ServerSocket(8888);
+    Socket socket = server.accept();
+    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+    ois.readObject(); // ← 在这里下断点
+}</code></pre>
+    <h3>生成 Payload</h3>
+    <pre><code># 下载 ysoserial-all.jar 后
+java -jar ysoserial-all.jar CommonsCollections6 "open -a Calculator" > payload.ser</code></pre>
+    <h3>调试路径（CC6 链，面试/工作最常见的链）</h3>
+    <table>
+      <thead>
+        <tr><th>断点位置</th><th>观察内容</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>ObjectInputStream#readObject</code></td><td>入口</td></tr>
+        <tr><td><code>AnnotationInvocationHandler#readObject</code></td><td>反序列化时自动回调的 readObject</td></tr>
+        <tr><td><code>AbstractMapDecorator#equals</code> → <code>LazyMap#get</code></td><td>触发 map.get 的关键一跳</td></tr>
+        <tr><td><code>ChainedTransformer#transform</code></td><td>链式执行开始</td></tr>
+        <tr><td><code>InvokerTransformer#transform</code></td><td><strong>反射调用任意方法，最终 Runtime.exec</strong></td></tr>
+      </tbody>
+    </table>
+    <blockquote>跟完这条链你会彻底理解「反序列化漏洞 = readObject 回调 + 可达的危险方法调用链」。</blockquote>
+  </section>
+
+  <!-- 4. vulhub -->
+  <section class="card">
+    <h2><span class="num">4</span>vulhub — 真实中间件环境 <span class="tag">fastjson / shiro / weblogic</span></h2>
+    <p><strong>仓库</strong>：<a href="https://github.com/vulhub/vulhub" target="_blank" rel="noopener">https://github.com/vulhub/vulhub</a></p>
+    <p>Docker 一键起真实漏洞环境，重点推荐这几个反序列化相关目录：</p>
+    <table>
+      <thead>
+        <tr><th>目录</th><th>漏洞</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>fastjson/1.2.24-rce</code></td><td>经典 fastjson JdbcRowSetImpl 链</td></tr>
+        <tr><td><code>shiro/CVE-2016-4437</code></td><td>Shiro RememberMe 反序列化</td></tr>
+        <tr><td><code>weblogic/CVE-2017-10271</code></td><td>WebLogic XMLDecoder 反序列化</td></tr>
+        <tr><td><code>java/rmi-registry-codebase</code></td><td>RMI 远程类加载</td></tr>
+      </tbody>
+    </table>
+    <pre><code>git clone https://github.com/vulhub/vulhub.git
+cd vulhub/fastjson/1.2.24-rce
+docker compose up -d</code></pre>
+    <p><strong>fastjson 调试要点</strong>：在 <code>JdbcRowSetImpl#setDataSourceName</code> 和 <code>connect</code> 下断点，观察 JSON 的 <code>@type</code> 如何驱动类实例化 → setter 自动调用 → JNDI 查询 → 加载远程字节码。</p>
+  </section>
+
+  <!-- 5. Java-Chains -->
+  <section class="card">
+    <h2><span class="num">5</span>Java-Chains — 漏洞链生成平台 <span class="tag">进阶综合</span></h2>
+    <p><strong>仓库</strong>：<a href="https://github.com/vulhub/java-chains" target="_blank" rel="noopener">https://github.com/vulhub/java-chains</a></p>
+    <ul>
+      <li>可视化拼接 gadget 链，能看到「数据源类 → 中间转化类 → 触发类」的完整链路图</li>
+      <li>支持 fastjson、Hessian、原生 JDK 等多种入口</li>
+      <li>适合学完单链后理解<strong>链的组合思想</strong></li>
+    </ul>
+  </section>
+
+  <!-- 学习路线 -->
+  <section class="card">
+    <h2><span class="num">📈</span>推荐学习路线</h2>
+    <div class="route">
+      WebGoat<span class="arrow">（理解概念）</span><br>
+      ↓<br>
+      java-sec-code<span class="arrow">（原生反序列化，学会看 readObject）</span><br>
+      ↓<br>
+      ysoserial CC6 调试<span class="arrow">（gadget chain 思想，最关键一步）</span><br>
+      ↓<br>
+      vulhub fastjson 环境<span class="arrow">（框架级触发，setter / JNDI）</span><br>
+      ↓<br>
+      Java-Chains<span class="arrow">（组合与绕过）</span>
+    </div>
+  </section>
+
+  <!-- 调试技巧 -->
+  <section class="card">
+    <h2><span class="num">🛠</span>通用调试技巧</h2>
+    <ol>
+      <li><strong>IDEA 断点技巧</strong>：在 <code>ObjectInputStream#readObject0</code> 下断点后，用 <strong>Evaluate Expression</strong> 实时查看当前解析的类名（<code>desc.getName()</code>）</li>
+      <li><strong>看调用栈比单步快</strong>：触发 payload 后直接看左下角 Frames 面板，从底向上读就是完整利用链</li>
+      <li><strong>Method Breakpoint</strong>：在 <code>Runtime#exec</code> 下方法断点，反推谁调用了它，一条调用栈即一条可利用链</li>
+      <li><strong>序列化数据分析</strong>：用 <a href="https://github.com/phith0n/zkar" target="_blank" rel="noopener">zkar</a> 解析 payload 字节流，对照 <a href="https://docs.oracle.com/javase/8/docs/platform/serialization/spec/protocol.html" target="_blank" rel="noopener">Java 序列化协议规范</a> 看每个 TC_OBJECT / TC_CLASSDESC 标记的含义</li>
+    </ol>
+  </section>
+
+  <div class="footer">
+    Java 反序列化漏洞学习环境推荐 · 仅供安全研究与防御学习使用
+  </div>
+
+</div>
+</body>
+</html>
