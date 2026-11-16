@@ -133,9 +133,9 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 一般情况下，比如在现代浏览器中（如chrome）访问这个poc.html后，会返回401，并提示用户未登录，原因是请求未自动携带cookie
 
-```
-# 如何确认原因？
+如何确认原因？
 
+```
 1. 在被测系统页面，打开开发者工具——Application——Storage——Cookie，点击对应的域名，查看认证使用的Access Token，其samesite属性多半是Lax
 2. 如果Samesite属性是Lax，则说明该应用网关上已经设置了限制跨域的安全策略，跨域请求是禁止携带cookie的
 3. 如果Samesite属性是空，由于现代浏览器在samesite为空（注意不是none）时，默认按照Lax执行
